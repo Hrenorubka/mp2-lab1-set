@@ -7,7 +7,7 @@
 
 #include "tbitfield.h"
 
-const unsigned int size_TELEM = sizeof(TELEM) * 8;
+
 
 TBitField::TBitField(int len)
 {
@@ -48,9 +48,10 @@ int TBitField::GetMemIndex(const int n) const // индекс Мем для би
 
 TELEM TBitField::GetMemMask(const int n) const // битовая маска для бита n
 {
-	if ((n >= BitLen) || (n < 0))
+	if ((n > BitLen) || (n < 0))
 		throw 1;
-	return 1 << (n % size_TELEM);
+	
+	return (TELEM) 1 << (n % size_TELEM);
 }
 
 // доступ к битам битового поля
@@ -62,20 +63,26 @@ int TBitField::GetLength(void) const // получить длину (к-во б�
 
 void TBitField::SetBit(const int n) // установить бит
 {
+	if ((n > BitLen) || (n < 0))
+		throw 1;
 	int MemInd = GetMemIndex(n);
 	pMem[MemInd] = pMem[MemInd] | GetMemMask(n);
 }
 
 void TBitField::ClrBit(const int n) // очистить бит
 {
+	if ((n > BitLen) || (n < 0))
+		throw 1;
 	int MemInd = GetMemIndex(n);
 	pMem[MemInd] = pMem[MemInd] & ~(GetMemMask(n));
 }
 
 int TBitField::GetBit(const int n) const // получить значение бита
 {
+	if ((n > BitLen) || (n < 0))
+		throw 1;
 	int MemInd = GetMemIndex(n);
-	return pMem[MemInd] & GetMemMask(n - MemInd * size_TELEM);
+	return (pMem[MemInd] & GetMemMask(n)) != 0;
 }
 
 // битовые операции
@@ -128,15 +135,36 @@ TBitField TBitField::operator|(const TBitField &bf) // операция "или"
 
 TBitField TBitField::operator&(const TBitField &bf) // операция "и"
 {
-	TBitField obl(BitLen > bf.BitLen ? BitLen : bf.BitLen);
-	for (int i = 0; i < MemLen; i++)
+	bool flag = 0;
+	if (BitLen >= bf.BitLen)
 	{
-		obl.pMem[i] = pMem[i];
+		flag = 1;
 	}
-	for (int i = 0; i < bf.MemLen; i++)
+	TBitField obl(flag ? BitLen : bf.BitLen);
+	if (flag)
 	{
-		obl.pMem[i] = obl.pMem[i] & bf.pMem[i];
+		for (int i = 0; i < bf.MemLen; i++)
+		{
+			obl.pMem[i] = bf.pMem[i];
+		}
+		for (int i = 0; i < MemLen; i++)
+		{
+			obl.pMem[i] = obl.pMem[i] & pMem[i];
+		}
 	}
+	else
+	{
+		for (int i = 0; i < MemLen; i++)
+		{
+			obl.pMem[i] = pMem[i];
+		}
+		for (int i = 0; i < bf.MemLen; i++)
+		{
+			obl.pMem[i] = obl.pMem[i] & bf.pMem[i];
+		}
+	}
+	
+	
 	return obl;
 }
 
